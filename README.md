@@ -36,8 +36,8 @@ Project_Root/
 │   └── CNN-RNN.py        # 모델 학습, 검증, 그래프 시각화 및 평가
 │
 ├── CNN-TCN/              # CNN-TCN 모델 파트
-│   ├── dataset_prep.py   # CNN-TCN 학습을 위한 데이터 전처리
-│   └── CNN-TCN.py        # 모델 학습, 검증, 그래프 시각화 및 평가
+│   ├── dataset_prep.py
+│   └── CNN-TCN.py 
 │
 ├── EfficientNet/         # EfficientNet 모델 파트
 │   ├── dataset_prep.py
