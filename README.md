@@ -116,12 +116,5 @@ pip install -r requirements.txt
 
 ---
 
-## 💾 데이터베이스 연동 가이드 (선택사항)
+## 💾 데이터베이스 연동 (기본 연동 코드만 작성, 추후 업데이트 예정)
 
-학습 완료 후 성능 기록을 시스템에 자동으로 저장하고 싶다면 MySQL 데이터베이스를 연동할 수 있습니다.
-
-1. `sql_connect/mysql_connect.py` 파일 상단의 `DB_CONFIG` 정보를 본인의 MySQL 서버 사양에 맞게 수정합니다.
-2. 테이블을 자동 생성하거나 작동 여부를 확인하기 위해 테스트 모듈을 실행합니다.
-   ```bash
-   python sql_connect/mysql_connect.py
-   ```
