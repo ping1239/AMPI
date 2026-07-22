@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 np.random.seed(42)
 torch.manual_seed(42)
@@ -17,8 +17,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-dataset_dir = os.path.join(current_dir, 'dataset')
-save_dir = os.path.join(current_dir, 'model_output', 'CNN-RNN')
+dataset_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'dataset', 'combined')
+save_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'output', 'combined', 'CNN-RNN')
 os.makedirs(save_dir, exist_ok=True)
 
 # 2. 데이터 로드 및 PyTorch DataLoader 생성
@@ -211,8 +211,8 @@ plt.xlabel('Epochs')
 plt.legend()
 
 plt.tight_layout()
-plt.savefig(os.path.join(save_dir, 'crnn_training_history.png'))
-print(f"Graph saved to {save_dir}/crnn_training_history.png")
+plt.savefig(os.path.join(save_dir, 'training_history.png'))
+print(f"Graph saved to {save_dir}/training_history.png")
 plt.close()
 
 # 7. 최종 평가
@@ -236,18 +236,6 @@ with torch.no_grad():
 
 test_acc = 100 * test_correct / test_total
 print(f"Final Test Accuracy: {test_acc:.2f}%")
-
-report = classification_report(
-    all_labels,
-    all_predictions,
-    labels=list(range(5)),
-    target_names=class_names,
-    digits=4,
-    zero_division=0,
-)
-print("\nClassification Report:\n", report)
-with open(os.path.join(save_dir, 'classification_report.txt'), 'w', encoding='utf-8') as file:
-    file.write(report)
 
 cm = confusion_matrix(all_labels, all_predictions, labels=list(range(5)))
 display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)

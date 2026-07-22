@@ -5,23 +5,24 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 # 1. 환경 설정
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-dataset_dir = os.path.join(current_dir, 'dataset')
-save_dir = os.path.join(current_dir, 'model_output', 'CNN-TCN')
+dataset_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'dataset', 'dual')
+save_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'output', 'dual', 'CNN-TCN')
 os.makedirs(save_dir, exist_ok=True)
 
 # 2. 데이터 로드 및 PyTorch DataLoader 생성
 print("Loading dataset...")
-X_train = np.load(os.path.join(dataset_dir, 'X_train.npy'))
+X_train = np.concatenate((np.load(os.path.join(dataset_dir, 'X_orig_train.npy')), np.load(os.path.join(dataset_dir, 'X_diff_train.npy'))), axis=1)
 y_train = np.load(os.path.join(dataset_dir, 'y_train.npy'))
-X_val = np.load(os.path.join(dataset_dir, 'X_val.npy'))
+X_val = np.concatenate((np.load(os.path.join(dataset_dir, 'X_orig_val.npy')), np.load(os.path.join(dataset_dir, 'X_diff_val.npy'))), axis=1)
 y_val = np.load(os.path.join(dataset_dir, 'y_val.npy'))
-X_test = np.load(os.path.join(dataset_dir, 'X_test.npy'))
+X_test = np.concatenate((np.load(os.path.join(dataset_dir, 'X_orig_test.npy')), np.load(os.path.join(dataset_dir, 'X_diff_test.npy'))), axis=1)
 y_test = np.load(os.path.join(dataset_dir, 'y_test.npy'))
 
 train_dataset = TensorDataset(torch.tensor(X_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.long))
@@ -160,7 +161,7 @@ class CNN_TCN(nn.Module):
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Dropout(0.4),
-            nn.Linear(64, 2)
+            nn.Linear(64, 5)
         )
 
     def forward(self, x):
@@ -187,7 +188,20 @@ class CNN_TCN(nn.Module):
         out = self.classifier(out)
         return out
 
-model = CNN_TCN().to(device)
+class DualCNN_TCN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.orig_branch = CNN_TCN()
+        self.diff_branch = CNN_TCN()
+        self.fusion = nn.Linear(10, 5)
+
+    def forward(self, x):
+        orig_output = self.orig_branch(x[:, :6])
+        diff_output = self.diff_branch(x[:, 6:])
+        return self.fusion(torch.cat((orig_output, diff_output), dim=1))
+
+
+model = DualCNN_TCN().to(device)
 
 # 4. 손실 함수 및 옵티마이저
 criterion = nn.CrossEntropyLoss()
@@ -279,8 +293,8 @@ plt.xlabel('Epochs')
 plt.legend()
 
 plt.tight_layout()
-plt.savefig(os.path.join(save_dir, 'cnn_tcn_training_history.png'))
-print(f"Graph saved to {save_dir}/cnn_tcn_training_history.png")
+plt.savefig(os.path.join(save_dir, 'training_history.png'))
+print(f"Graph saved to {save_dir}/training_history.png")
 plt.show()
 
 # 7. 최종 평가
@@ -289,6 +303,8 @@ model.load_state_dict(torch.load(os.path.join(save_dir, 'cnn_tcn_best.pth'), wei
 model.eval()
 test_correct = 0
 test_total = 0
+all_predictions = []
+all_labels = []
 
 with torch.no_grad():
     for images, labels in test_loader:
@@ -297,6 +313,16 @@ with torch.no_grad():
         _, predicted = torch.max(outputs.data, 1)
         test_total += labels.size(0)
         test_correct += (predicted == labels).sum().item()
+        all_predictions.extend(predicted.cpu().numpy())
+        all_labels.extend(labels.cpu().numpy())
 
 test_acc = 100 * test_correct / test_total
 print(f"Final Test Accuracy: {test_acc:.2f}%")
+
+cm = confusion_matrix(all_labels, all_predictions)
+display = ConfusionMatrixDisplay(confusion_matrix=cm)
+display.plot(cmap=plt.cm.Blues)
+plt.title('CNN-TCN Test Set Confusion Matrix')
+plt.tight_layout()
+plt.savefig(os.path.join(save_dir, 'confusion_matrix.png'))
+plt.close()
